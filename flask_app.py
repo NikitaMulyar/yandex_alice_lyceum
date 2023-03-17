@@ -91,13 +91,11 @@ def handle_dialog(req, res):
     # Если он написал 'ладно', 'куплю', 'покупаю', 'хорошо', то мы считаем, что пользователь не согласился.
     # Подумайте, все ли в этом фрагменте написано "красиво"?
     flag = 'кролика'
-    if not BUY_RABBIT:
-        flag = 'слона'
     for i in ['ладно', 'куплю', 'покупаю', 'хорошо']:
         if i in req['request']['original_utterance'].lower().split():
             # Пользователь согласился, прощаемся.
             res['response']['text'] = f'{flag.upper()} можно найти на Яндекс.Маркете!'
-            res['response']['end_session'] = True
+            res['response']['end_session'] = BUY_RABBIT
             return
 
     # Если нет, то убеждаем его купить слона!
