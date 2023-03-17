@@ -21,6 +21,7 @@ logging.basicConfig(level=logging.INFO)
 # Такая запись говорит, что мы показали пользователю эти три подсказки. Когда он откажется купить слона,
 # то мы уберем одну подсказку. Как будто что-то меняется :)
 sessionStorage = {}
+BUY_RABBIT = False
 
 
 # Функция получает тело запроса и возвращает ответ.
@@ -50,6 +51,7 @@ def main():
 
 
 def handle_dialog(req, res):
+    global BUY_RABBIT
     user_id = req['session']['user_id']
 
     if req['session']['new']:
@@ -69,21 +71,37 @@ def handle_dialog(req, res):
         # Получим подсказки
         res['response']['buttons'] = get_suggests(user_id)
         return
-
+    elif req['response']['end_session']:
+        sessionStorage[user_id] = {
+            'suggests': [
+                "Не хочу.",
+                "Не буду.",
+                "Отстань!",
+            ]
+        }
+        # Заполняем текст ответа
+        res['response']['text'] = 'Привет! Купи кролика!'
+        # Получим подсказки
+        res['response']['buttons'] = get_suggests(user_id)
+        BUY_RABBIT = True
+        return
     # Сюда дойдем только, если пользователь не новый, и разговор с Алисой уже был начат
     # Обрабатываем ответ пользователя.
     # В req['request']['original_utterance'] лежит весь текст, что нам прислал пользователь
     # Если он написал 'ладно', 'куплю', 'покупаю', 'хорошо', то мы считаем, что пользователь не согласился.
     # Подумайте, все ли в этом фрагменте написано "красиво"?
+    flag = 'кролика'
+    if not BUY_RABBIT:
+        flag = 'слона'
     for i in ['ладно', 'куплю', 'покупаю', 'хорошо']:
         if i in req['request']['original_utterance'].lower().split():
             # Пользователь согласился, прощаемся.
-            res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
+            res['response']['text'] = f'{flag.upper()} можно найти на Яндекс.Маркете!'
             res['response']['end_session'] = True
             return
 
     # Если нет, то убеждаем его купить слона!
-    res['response']['text'] = 'Все говорят "%s", а ты купи слона!' % (
+    res['response']['text'] = f'Все говорят "%s", а ты купи {flag}!' % (
         req['request']['original_utterance']
     )
     res['response']['buttons'] = get_suggests(user_id)
@@ -105,10 +123,13 @@ def get_suggests(user_id):
 
     # Если осталась только одна подсказка, предлагаем подсказку
     # со ссылкой на Яндекс.Маркет.
+    url_ = "https://market.yandex.ru/search?text=слон"
+    if BUY_RABBIT:
+        url_ = "https://market.yandex.ru/search?text=кролик"
     if len(suggests) < 2:
         suggests.append({
             "title": "Ладно",
-            "url": "https://market.yandex.ru/search?text=слон",
+            "url": url_,
             "hide": True
         })
 
